@@ -1,0 +1,12 @@
+# Don't commit data files (too big for git)
+data/*.RData
+data/*.parquet
+data/*.csv
+
+# RStudio internals
+.Rhistory
+.Rproj.user/
+
+# OS files
+.DS_Store
+
