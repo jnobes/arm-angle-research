@@ -446,6 +446,44 @@ cat("Saved: outputs/post3_whiff_vs_ivb.png\n")
 # ============================================================
 # SAVE FINAL ENVIRONMENT
 # ============================================================
+# ============================================================
+# E. PER-PITCH-TYPE RESIDUAL ANALYSIS
+# ============================================================
 
+cat("\n=== E. PER-PITCH RESIDUAL ANALYSIS ===\n")
+
+# Compute arm-angle-adjusted movement residuals for all pitch types
+analysis_with_residuals <- analysis %>%
+  group_by(pitch_type) %>%
+  mutate(
+    expected_ivb = predict(
+      lm(avg_ivb ~ arm_angle, data = pick(everything()) %>% filter(season == 2024)),
+      newdata = pick(everything())
+    ),
+    expected_hb = predict(
+      lm(abs(avg_hb) ~ arm_angle, data = pick(everything()) %>% filter(season == 2024)),
+      newdata = pick(everything())
+    ),
+    ivb_residual = avg_ivb - expected_ivb,
+    hb_residual = abs(avg_hb) - expected_hb
+  ) %>%
+  ungroup()
+
+# Test residual vs outcomes for ALL pitch types
+residual_by_pitch <- analysis_with_residuals %>%
+  filter(n_pitches >= 100, !is.na(whiff_pct), !is.na(ivb_residual)) %>%
+  group_by(pitch_type) %>%
+  summarise(
+    n = n(),
+    raw_ivb_vs_whiff = cor(avg_ivb, whiff_pct, use = "complete.obs"),
+    resid_ivb_vs_whiff = cor(ivb_residual, whiff_pct, use = "complete.obs"),
+    raw_hb_vs_whiff = cor(abs(avg_hb), whiff_pct, use = "complete.obs"),
+    resid_hb_vs_whiff = cor(hb_residual, whiff_pct, use = "complete.obs"),
+    .groups = "drop"
+  ) %>%
+  mutate(across(where(is.numeric), ~ round(.x, 3)))
+
+cat("Residual vs Whiff% by pitch type:\n")
+print(residual_by_pitch, width = Inf)
 save.image("data/arm_angle_backup.RData")
 cat("\nAll analysis complete. Charts saved to outputs/.\n")
